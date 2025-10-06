@@ -1,4 +1,5 @@
 import GameTable from '@/components/GameTable'
+import LoginButton from '@/components/LoginButton'
 
 export default function Home() {
   return (
@@ -10,6 +11,13 @@ export default function Home() {
       >
         View History
       </a>
+      <a
+        href="/login"
+        className="text-sm underline text-purple-400 hover:text-purple-300"
+      >
+        Login
+      </a>
+      
       <GameTable />
     </main>
   )
