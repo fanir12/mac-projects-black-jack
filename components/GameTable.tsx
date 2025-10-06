@@ -9,6 +9,7 @@ import {
   type Outcome,
 } from '@/core/game'
 import Card from './Card'
+import BuyChips from './BuyChips'
 import BetControls from './BetControls'
 import { supabase } from '@/core/supabase'
 import { getCurrentUser } from '@/core/auth'
@@ -21,6 +22,7 @@ export default function GameTable() {
   const [bet, setBet] = useState<number | null>(null)
   const [phase, setPhase] = useState<'bet' | 'player' | 'dealer' | 'result'>('bet')
   const [outcome, setOutcome] = useState<Outcome | null>(null)
+  const [showBuyModal, setShowBuyModal] = useState(false)
 
   const pTotal = useMemo(() => handTotal(player), [player])
   const dTotal = useMemo(() => handTotal(dealer), [dealer])
@@ -219,7 +221,24 @@ export default function GameTable() {
       )}
 
       {/* Chip display */}
-      <div className="text-sm opacity-80">Chips: {chips}</div>
+      <div className="text-sm opacity-80 flex items-center gap-2">
+        Chips: {chips}
+        <button
+          onClick={() => setShowBuyModal(true)}
+          className="ml-1 px-2 py-0.5 rounded bg-neutral-800 hover:bg-neutral-700 text-xs"
+        >
+          +
+        </button>
+      </div>
+
+      {showBuyModal && user && (
+        <BuyChips
+          userId={user.id}
+          onBuy={(amt) => setChips((prev) => prev + amt)}
+          onClose={() => setShowBuyModal(false)}
+        />
+      )}
+
     </div>
   )
 }
