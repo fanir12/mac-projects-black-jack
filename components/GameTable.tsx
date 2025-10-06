@@ -13,66 +13,60 @@ import BetControls from './BetControls'
 import { supabase } from '@/core/supabase'
 import { getCurrentUser } from '@/core/auth'
 
-// GameTable component
 export default function GameTable() {
   const [user, setUser] = useState<any>(null)
-
-  useEffect(() => {
-    const loadProfile = async () => {
-      const currentUser = await getCurrentUser()
-      if (!currentUser) {
-        setUser(null)
-        return
-      }
-
-      // double-check the user exists in auth.users
-      const { data: authUser, error: authError } = await supabase
-        .from('auth.users')
-        .select('id')
-        .eq('id', currentUser.id)
-        .single()
-
-      if (authError || !authUser) {
-        console.warn('User not yet available in auth.users — waiting...')
-        return
-      }
-
-      setUser(currentUser)
-
-      // fetch or create profile
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('chips')
-        .eq('user_id', currentUser.id)
-        .single()
-
-      if (data) {
-        setChips(data.chips)
-      } else {
-        // if no profile found, create one with 500 starting credits
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert({ user_id: currentUser.id, chips: 500 })
-        if (!insertError) setChips(500)
-      }
-    }
-    loadProfile()
-  }, [])
-
-
-
+  const [chips, setChips] = useState(1000)
   const [player, setPlayer] = useState<TCard[]>([])
   const [dealer, setDealer] = useState<TCard[]>([])
   const [bet, setBet] = useState<number | null>(null)
   const [phase, setPhase] = useState<'bet' | 'player' | 'dealer' | 'result'>('bet')
   const [outcome, setOutcome] = useState<Outcome | null>(null)
-  // local chip count 
-  const [chips, setChips] = useState(1000)
 
   const pTotal = useMemo(() => handTotal(player), [player])
   const dTotal = useMemo(() => handTotal(dealer), [dealer])
 
-  // reset game to betting phase
+  useEffect(() => {
+    let mounted = true
+
+    async function loadProfile() {
+      const currentUser = await getCurrentUser()
+      if (!mounted) return
+      if (!currentUser) return
+
+      setUser(currentUser)
+
+      // Try to get existing profile
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('chips')
+        .eq('user_id', currentUser.id)
+        .maybeSingle()
+
+      if (!mounted) return
+      if (error) {
+        console.error('Error loading profile:', error.message)
+        return
+      }
+
+      if (data) {
+        setChips(data.chips)
+      } else {
+        // Create profile if none exists
+        const { error: upsertError } = await supabase
+          .from('profiles')
+          .upsert({ user_id: currentUser.id, chips: 500 })
+
+        if (upsertError) console.error('Profile upsert failed:', upsertError.message)
+        else setChips(500)
+      }
+    }
+
+    loadProfile()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
   function reset() {
     setPlayer([])
     setDealer([])
@@ -81,7 +75,6 @@ export default function GameTable() {
     setOutcome(null)
   }
 
-  // start a new round with the given bet amount
   function start(amt: number) {
     if (amt < 1 || amt > chips) return
     setBet(amt)
@@ -90,22 +83,23 @@ export default function GameTable() {
     setPhase('player')
   }
 
-  // hit: add another card to player's hand
   function hit() {
     if (phase !== 'player' || pTotal >= 21) return
     setPlayer((prev) => [...prev, drawCard()])
   }
 
-  // stand: dealer plays until total=>17
   function stand() {
+    if (phase !== 'player') return
     setPhase('dealer')
     const d = dealerPlay(dealer)
     setDealer(d)
     finish([...player], [...d])
   }
 
-  // finish the round
   async function finish(p: TCard[], d: TCard[]) {
+    // Avoid duplicate calls
+    if (phase === 'result') return
+
     const result = settle(p, d)
     setOutcome(result)
     setPhase('result')
@@ -114,51 +108,40 @@ export default function GameTable() {
     const newChips = Math.max(0, chips + delta)
     setChips(newChips)
 
-    // only proceed if a user is signed in
     if (!user) {
-      console.warn('No user signed in — game not saved.')
+      console.warn('No user signed in — skipping save.')
       return
     }
 
-    // ensure the user has a profile (if first login)
-    const { data: existingProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('chips')
-      .eq('user_id', user.id)
-      .single()
+    try {
+      // Insert game result
+      const { error: gameError } = await supabase.from('games').insert({
+        user_id: user.id,
+        bet: bet!,
+        outcome: result,
+        player_total: handTotal(p),
+        dealer_total: handTotal(d),
+        player_cards: JSON.stringify(p),
+        dealer_cards: JSON.stringify(d),
+      })
 
-    if (profileError && profileError.code === 'PGRST116') {
-      // no profile found, create one with 500 credits
-      const { error: insertProfileError } = await supabase
+      if (gameError) {
+        console.error('Insert failed:', gameError.message)
+      } else if (process.env.NODE_ENV === 'development') {
+        console.log('Game saved to Supabase')
+      }
+
+      // Update user's chip balance
+      const { error: updateError } = await supabase
         .from('profiles')
-        .insert({ user_id: user.id, chips: 500 })
-      if (insertProfileError) console.error('Failed to create profile:', insertProfileError.message)
+        .update({ chips: newChips })
+        .eq('user_id', user.id)
+
+      if (updateError) console.error('Chip update failed:', updateError.message)
+    } catch (err) {
+      console.error('Unexpected error saving game:', err)
     }
-
-    //  insert result into Supabase
-    const { error: gameError } = await supabase.from('games').insert({
-      user_id: user.id,
-      bet: bet!,
-      outcome: result,
-      player_total: handTotal(p),
-      dealer_total: handTotal(d),
-      player_cards: JSON.stringify(p),
-      dealer_cards: JSON.stringify(d),
-    })
-
-    if (gameError) {
-      console.error('Insert failed:', gameError.message)
-    } else {
-      console.log('Game saved to Supabase!')
-    }
-
-    // update user's chip balance in profiles
-    await supabase
-      .from('profiles')
-      .update({ chips: newChips })
-      .eq('user_id', user.id)
   }
-
 
   return (
     <div className="p-4 rounded-2xl bg-neutral-900 border border-neutral-800 space-y-4">
@@ -187,17 +170,25 @@ export default function GameTable() {
       </section>
 
       {/* Betting controls */}
-      {phase === 'bet' && (
-        <BetControls max={chips} onBet={start} />
-      )}
+      {phase === 'bet' && <BetControls max={chips} onBet={start} />}
 
       {/* Player actions */}
       {phase === 'player' && (
         <div className="flex gap-2">
-          <button className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500"
-                  onClick={hit}>Hit</button>
-          <button className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500"
-                  onClick={stand}>Stand</button>
+          <button
+            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50"
+            onClick={hit}
+            disabled={phase !== 'player'}
+          >
+            Hit
+          </button>
+          <button
+            className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 disabled:opacity-50"
+            onClick={stand}
+            disabled={phase !== 'player'}
+          >
+            Stand
+          </button>
         </div>
       )}
 
@@ -205,14 +196,25 @@ export default function GameTable() {
       {phase === 'result' && outcome && (
         <div className="space-y-2">
           <div className="text-lg">
-            Result: <b className={{
-              win: 'text-green-400',
-              loss: 'text-red-400',
-              push: 'text-yellow-300',
-            }[outcome]}>{outcome.toUpperCase()}</b>
+            Result:{' '}
+            <b
+              className={
+                {
+                  win: 'text-green-400',
+                  loss: 'text-red-400',
+                  push: 'text-yellow-300',
+                }[outcome]
+              }
+            >
+              {outcome.toUpperCase()}
+            </b>
           </div>
-          <button className="px-4 py-2 rounded-lg bg-neutral-700 hover:bg-neutral-600"
-                  onClick={reset}>Play Again</button>
+          <button
+            className="px-4 py-2 rounded-lg bg-neutral-700 hover:bg-neutral-600"
+            onClick={reset}
+          >
+            Play Again
+          </button>
         </div>
       )}
 
