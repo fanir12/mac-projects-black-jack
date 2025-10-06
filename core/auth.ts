@@ -1,22 +1,35 @@
-'use client'
 import { supabase } from './supabase'
 
-// Sign in with Google
-export async function signInWithGoogle() {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
+export async function signUpWithEmail(email: string, password: string) {
+  return await supabase.auth.signUp({ email, password })
+}
+
+export async function signInWithEmail(email: string, password: string) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
   })
-  if (error) console.error('Sign-in error:', error.message)
+  return { session: data.session, error }
 }
 
-// Sign out
-export async function signOut() {
-  const { error } = await supabase.auth.signOut()
-  if (error) console.error('Sign-out error:', error.message)
-}
-
-// Get current user (session persisted in browser)
 export async function getCurrentUser() {
-  const { data } = await supabase.auth.getUser()
-  return data?.user ?? null
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
+
+    if (error) {
+      console.warn('Supabase auth error:', error.message)
+      return null
+    }
+
+    return user
+  } catch (err) {
+    console.warn('Auth session missing — returning null')
+    return null
+  }
+}
+export async function signOut() {
+  await supabase.auth.signOut()
 }
