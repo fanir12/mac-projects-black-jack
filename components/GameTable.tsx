@@ -10,6 +10,8 @@ import {
 } from '@/core/game'
 import Card from './Card'
 import BetControls from './BetControls'
+import { supabase } from '@/core/supabase'
+
 
 
 // GameTable component
@@ -58,14 +60,31 @@ export default function GameTable() {
   }
 
   // finish the round
-  function finish(p: TCard[], d: TCard[]) {
+  async function finish(p: TCard[], d: TCard[]) {
     const result = settle(p, d)
     setOutcome(result)
     setPhase('result')
 
-    // temporary chip logic
     const delta = result === 'win' ? bet! : result === 'loss' ? -bet! : 0
-    setChips((prev) => Math.max(0, prev + delta))
+    const newChips = Math.max(0, chips + delta)
+    setChips(newChips)
+
+    // insert result into Supabase
+    const { error } = await supabase.from('games').insert({
+      user_id: '00000000-0000-0000-0000-000000000000', // temporary placeholder
+      bet: bet!,
+      outcome: result,
+      player_total: handTotal(p),
+      dealer_total: handTotal(d),
+      player_cards: JSON.stringify(p),
+      dealer_cards: JSON.stringify(d),
+    })
+
+    if (error) {
+      console.error('Insert failed:', error.message)
+    } else {
+      console.log('Game saved!')
+    }
   }
 
   return (
@@ -129,28 +148,3 @@ export default function GameTable() {
     </div>
   )
 }
-
-// BetControls subcomponent
-// function BetControls({ max, onBet }: { max: number; onBet: (n: number) => void }) {
-//   const [amt, setAmt] = useState(10)
-
-//   return (
-//     <div className="flex items-center gap-2">
-//       <input
-//         type="number"
-//         className="px-2 py-1 rounded bg-neutral-800 border border-neutral-700 w-20"
-//         min={1}
-//         max={max}
-//         value={amt}
-//         onChange={(e) => setAmt(Math.max(1, Math.min(max, Number(e.target.value) || 1)))}
-//       />
-//       <button
-//         className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500"
-//         onClick={() => onBet(amt)}
-//         disabled={amt < 1 || amt > max}
-//       >
-//         Place Bet
-//       </button>
-//     </div>
-//   )
-// }
