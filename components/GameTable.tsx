@@ -11,11 +11,56 @@ import {
 import Card from './Card'
 import BetControls from './BetControls'
 import { supabase } from '@/core/supabase'
-
-
+import { getCurrentUser } from '@/core/auth'
 
 // GameTable component
 export default function GameTable() {
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const currentUser = await getCurrentUser()
+      if (!currentUser) {
+        setUser(null)
+        return
+      }
+
+      // double-check the user exists in auth.users
+      const { data: authUser, error: authError } = await supabase
+        .from('auth.users')
+        .select('id')
+        .eq('id', currentUser.id)
+        .single()
+
+      if (authError || !authUser) {
+        console.warn('User not yet available in auth.users — waiting...')
+        return
+      }
+
+      setUser(currentUser)
+
+      // fetch or create profile
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('chips')
+        .eq('user_id', currentUser.id)
+        .single()
+
+      if (data) {
+        setChips(data.chips)
+      } else {
+        // if no profile found, create one with 500 starting credits
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({ user_id: currentUser.id, chips: 500 })
+        if (!insertError) setChips(500)
+      }
+    }
+    loadProfile()
+  }, [])
+
+
+
   const [player, setPlayer] = useState<TCard[]>([])
   const [dealer, setDealer] = useState<TCard[]>([])
   const [bet, setBet] = useState<number | null>(null)
@@ -69,9 +114,30 @@ export default function GameTable() {
     const newChips = Math.max(0, chips + delta)
     setChips(newChips)
 
-    // insert result into Supabase
-    const { error } = await supabase.from('games').insert({
-      user_id: '00000000-0000-0000-0000-000000000000', // temporary placeholder
+    // only proceed if a user is signed in
+    if (!user) {
+      console.warn('No user signed in — game not saved.')
+      return
+    }
+
+    // ensure the user has a profile (if first login)
+    const { data: existingProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('chips')
+      .eq('user_id', user.id)
+      .single()
+
+    if (profileError && profileError.code === 'PGRST116') {
+      // no profile found, create one with 500 credits
+      const { error: insertProfileError } = await supabase
+        .from('profiles')
+        .insert({ user_id: user.id, chips: 500 })
+      if (insertProfileError) console.error('Failed to create profile:', insertProfileError.message)
+    }
+
+    //  insert result into Supabase
+    const { error: gameError } = await supabase.from('games').insert({
+      user_id: user.id,
       bet: bet!,
       outcome: result,
       player_total: handTotal(p),
@@ -80,12 +146,19 @@ export default function GameTable() {
       dealer_cards: JSON.stringify(d),
     })
 
-    if (error) {
-      console.error('Insert failed:', error.message)
+    if (gameError) {
+      console.error('Insert failed:', gameError.message)
     } else {
-      console.log('Game saved!')
+      console.log('Game saved to Supabase!')
     }
+
+    // update user's chip balance in profiles
+    await supabase
+      .from('profiles')
+      .update({ chips: newChips })
+      .eq('user_id', user.id)
   }
+
 
   return (
     <div className="p-4 rounded-2xl bg-neutral-900 border border-neutral-800 space-y-4">
