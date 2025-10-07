@@ -23,6 +23,7 @@ export default function GameTable() {
   const [phase, setPhase] = useState<'bet' | 'player' | 'dealer' | 'result'>('bet')
   const [outcome, setOutcome] = useState<Outcome | null>(null)
   const [showBuyModal, setShowBuyModal] = useState(false)
+  const [suggestion, setSuggestion] = useState<string | null>(null)
 
   const pTotal = useMemo(() => handTotal(player), [player])
   const dTotal = useMemo(() => handTotal(dealer), [dealer])
@@ -53,7 +54,7 @@ export default function GameTable() {
       if (data) {
         setChips(data.chips)
       } else {
-        // Create profile if none exists
+        // Create profile with 500 starting chips
         const { error: upsertError } = await supabase
           .from('profiles')
           .upsert({ user_id: currentUser.id, chips: 500 })
@@ -75,6 +76,7 @@ export default function GameTable() {
     setBet(null)
     setPhase('bet')
     setOutcome(null)
+    setSuggestion(null)
   }
 
   function start(amt: number) {
@@ -98,9 +100,29 @@ export default function GameTable() {
     finish([...player], [...d])
   }
 
+  async function askAi() {
+    if (player.length === 0 || dealer.length === 0) return
+    const dealerUpcard = dealer[0]?.rank ?? 0
+    setSuggestion('Thinking...')
+
+    try {
+      const res = await fetch('/api/ai-suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerTotal: pTotal, dealerCard: dealerUpcard }),
+      })
+
+      const data = await res.json()
+      if (data.suggestion) setSuggestion(`AI suggests: ${data.suggestion}`)
+      else setSuggestion('AI could not provide a suggestion.')
+    } catch (err) {
+      console.error(err)
+      setSuggestion('Error getting AI suggestion.')
+    }
+  }
+
   async function finish(p: TCard[], d: TCard[]) {
-    // Avoid duplicate calls
-    if (phase === 'result') return
+    if (phase === 'result') return // prevent double save
 
     const result = settle(p, d)
     setOutcome(result)
@@ -116,7 +138,7 @@ export default function GameTable() {
     }
 
     try {
-      // Insert game result
+      // Insert game record
       const { error: gameError } = await supabase.from('games').insert({
         user_id: user.id,
         bet: bet!,
@@ -133,7 +155,7 @@ export default function GameTable() {
         console.log('Game saved to Supabase')
       }
 
-      // Update user's chip balance
+      // Update chip balance
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ chips: newChips })
@@ -176,21 +198,35 @@ export default function GameTable() {
 
       {/* Player actions */}
       {phase === 'player' && (
-        <div className="flex gap-2">
-          <button
-            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50"
-            onClick={hit}
-            disabled={phase !== 'player'}
-          >
-            Hit
-          </button>
-          <button
-            className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 disabled:opacity-50"
-            onClick={stand}
-            disabled={phase !== 'player'}
-          >
-            Stand
-          </button>
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex gap-2">
+            <button
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50"
+              onClick={hit}
+              disabled={phase !== 'player'}
+            >
+              Hit
+            </button>
+            <button
+              className="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-400 text-black font-semibold disabled:opacity-50"
+              onClick={stand}
+              disabled={phase !== 'player'}
+            >
+              Stand
+            </button>
+            <button
+              className="px-3 py-2 rounded-full bg-neutral-800 hover:bg-neutral-700 text-lg font-semibold"
+              onClick={askAi}
+            >
+              ?
+            </button>
+          </div>
+
+          {suggestion && (
+            <div className="text-xs text-center opacity-80 max-w-xs leading-snug">
+              {suggestion}
+            </div>
+          )}
         </div>
       )}
 
@@ -231,6 +267,7 @@ export default function GameTable() {
         </button>
       </div>
 
+      {/* Buy Chips Modal */}
       {showBuyModal && user && (
         <BuyChips
           userId={user.id}
@@ -238,7 +275,6 @@ export default function GameTable() {
           onClose={() => setShowBuyModal(false)}
         />
       )}
-
     </div>
   )
 }
