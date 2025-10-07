@@ -19,7 +19,7 @@ export default function Navbar() {
         </div>
 
         {/* Right: Navigation */}
-        <nav className="flex items-center gap-4 sm:gap-8 text-sm font-medium">
+        <nav className="flex items-center gap-4 sm:gap-8 text-base font-medium">
           <Link href="/" className="hover:text-blue-400 transition-colors">
             Home
           </Link>

@@ -94,7 +94,11 @@ export default function GameTable() {
         const { error: upsertError } = await supabase
           .from('profiles')
           .upsert({ user_id: currentUser.id, chips: 500 })
-        if (!upsertError) setChips(500)
+        if (!upsertError) {
+          setChips(500)
+          // Notify ChipsDisplay about the new chip balance
+          window.dispatchEvent(new CustomEvent('chips-updated'))
+        }
       }
     }
 
@@ -184,15 +188,13 @@ export default function GameTable() {
             ) : (
               // Show all dealer's cards
               <>
-                {dealer.map((card, i) => (
-                  i === 0 ? (
-                    <Card key={i} c={card} i={i} />
-                  ) : phase === 'player' && i === 1 ? (
-                    <Card key={i} i={i} back />
+                {dealer.map((card, i) =>
+                  phase === 'player' && i === 1 ? (
+                    <Card key={`${i}-back`} i={i} back />
                   ) : (
-                    <Card key={i} c={card} i={i} />
+                    <Card key={`${i}-${phase}`} c={card} i={i} />
                   )
-                ))}
+                )}
               </>
             )}
           </div>

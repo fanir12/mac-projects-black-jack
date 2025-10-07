@@ -30,11 +30,9 @@ export default function Home() {
 
   return (
     <>
-      {/* Navbar is fixed and outside of main content */}
       <Navbar />
 
-      {/* Main content is centered separately */}
-      <main className="min-h-screen flex flex-col items-center justify-center bg-neutral-950 text-neutral-100 pt-20">
+      <main className="min-h-screen flex flex-col items-center justify-center bg-neutral-950 text-neutral-100 pt-4">
         {user ? <GameTable /> : <AuthForm onLogin={() => window.location.reload()} />}
       </main>
     </>
