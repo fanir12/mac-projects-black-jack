@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Card as TCard,
   drawCard,
@@ -44,10 +44,15 @@ export default function GameTable() {
     setChips(newChips)
 
     if (!user) return
+
+    const isBlackjack = result === 'blackjack'
+    const dbOutcome = isBlackjack ? 'win' : result
+
     await supabase.from('games').insert({
       user_id: user.id,
       bet: bet!,
-      outcome: result,
+      outcome: dbOutcome,
+      is_blackjack: isBlackjack,
       player_total: handTotal(p),
       dealer_total: handTotal(d),
       player_cards: JSON.stringify(p),
@@ -64,8 +69,6 @@ export default function GameTable() {
   // Auto-bust: if player goes over 21, immediately end game
   useEffect(() => {
     if (phase === 'player' && pTotal > 21) {
-      console.log('Player busted with total:', pTotal)
-      console.log('Dealer cards:', dealer.length, 'Total:', handTotal(dealer))
       setPhase('dealer')
       finish([...player], [...dealer])
     }

@@ -7,7 +7,8 @@ import Navbar from '@/components/NavBar'
 type Game = {
   id: number
   bet: number
-  outcome: 'win' | 'loss' | 'push'
+  outcome: 'win' | 'loss' | 'push' | 'blackjack'
+  is_blackjack?: boolean
   player_total: number
   dealer_total: number
   delta?: number
@@ -41,7 +42,7 @@ export default function HistoryPage() {
   async function loadHistory(userId: string) {
     const { data, error } = await supabase
       .from('games')
-      .select('id, bet, outcome, player_total, dealer_total, created_at')
+      .select('id, bet, outcome, is_blackjack, player_total, dealer_total, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
@@ -50,10 +51,14 @@ export default function HistoryPage() {
       return
     }
 
+    console.log('Raw games from database:', data)
+
     const withDelta = (data || []).map((g) => ({
       ...g,
-      delta: g.outcome === 'win' ? g.bet : g.outcome === 'loss' ? -g.bet : 0,
+      // Use is_blackjack field to determine if it was a blackjack win
+      delta: g.is_blackjack ? Math.floor(g.bet * 1.5) : g.outcome === 'win' ? g.bet : g.outcome === 'loss' ? -g.bet : 0,
     }))
+    console.log('Games with deltas:', withDelta)
     setGames(withDelta)
   }
 
@@ -151,18 +156,19 @@ export default function HistoryPage() {
                         <div className="text-neutral-500 text-sm mb-1">Result</div>
                         <div
                           className={`font-semibold ${
-                            g.outcome === 'win'
+                            g.is_blackjack || g.outcome === 'win'
                               ? 'text-green-400'
                               : g.outcome === 'loss'
                               ? 'text-red-400'
                               : 'text-yellow-400'
                           }`}
                         >
-                          {g.outcome === 'win' && 'Win'}
+                          {g.is_blackjack && 'Blackjack!'}
+                          {!g.is_blackjack && g.outcome === 'win' && 'Win'}
                           {g.outcome === 'loss' && 'Lose'}
                           {g.outcome === 'push' && 'Push'}
-                          {g.outcome === 'win' && g.player_total === 21 && g.delta === g.bet * 1.5
-                            ? ` (+${Math.round(g.bet * 1.5)})`
+                          {g.is_blackjack
+                            ? ` (+${g.delta})`
                             : g.outcome === 'win'
                             ? ` (+${g.delta})`
                             : g.outcome === 'loss'
