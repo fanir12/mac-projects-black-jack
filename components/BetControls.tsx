@@ -38,11 +38,17 @@ export default function BetControls({ max, onBet }: BetControlsProps) {
 
       {/* confirm bet */}
       <button
-        className="w-full px-6 py-3 rounded-lg bg-white hover:bg-neutral-200 text-black font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+        className="w-full px-6 py-3 rounded-lg bg-white hover:bg-neutral-200 text-black font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg relative group"
         onClick={() => onBet(amt)}
         disabled={amt < 1 || amt > max}
+        title={max === 0 ? "Your chip balance is 0. Please top up before placing the bet." : ""}
       >
         Place Bet
+        {max === 0 && (
+          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-neutral-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            Aw! Your chip balance is 0. Please top up before placing a bet!
+          </span>
+        )}
       </button>
     </div>
   )
