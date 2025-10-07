@@ -171,18 +171,17 @@ export default function GameTable() {
                 <Card key={i} i={i} slot />
               ))
             ) : (
-              // Show dealer's cards during play
+              // Show all dealer's cards
               <>
-                {dealer[0] && <Card c={dealer[0]} i={0} />}
-                {dealer[1] ? (
-                  phase === 'player' ? (
-                    <Card i={1} back />
+                {dealer.map((card, i) => (
+                  i === 0 ? (
+                    <Card key={i} c={card} i={i} />
+                  ) : phase === 'player' && i === 1 ? (
+                    <Card key={i} i={i} back />
                   ) : (
-                    <Card c={dealer[1]} i={1} />
+                    <Card key={i} c={card} i={i} />
                   )
-                ) : (
-                  <Card i={1} slot />
-                )}
+                ))}
               </>
             )}
           </div>
