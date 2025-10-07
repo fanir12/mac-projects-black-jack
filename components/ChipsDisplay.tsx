@@ -1,11 +1,12 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { type User } from '@supabase/supabase-js'
 import { supabase } from '@/core/supabase'
 import { getCurrentUser } from '@/core/auth'
 import BuyChips from './BuyChips'
 
 export default function ChipsDisplay() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [chips, setChips] = useState<number>(0)
   const [showBuyModal, setShowBuyModal] = useState(false)
 

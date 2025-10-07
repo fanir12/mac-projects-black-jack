@@ -18,7 +18,7 @@ export default function AuthForm({ onLogin }: { onLogin?: () => void }) {
 
     try {
       if (isSignup) {
-        const { data, error } = await signUpWithEmail(email, password)
+        const { error } = await signUpWithEmail(email, password)
         if (error) throw error
         setMessage('Verification email sent! Please confirm before logging in.')
         setIsSignup(false)
@@ -28,13 +28,14 @@ export default function AuthForm({ onLogin }: { onLogin?: () => void }) {
         if (!session) throw new Error('Login failed — no session returned.')
         onLogin?.()
       }
-    } catch (err: any) {
-      if (err.message.includes('Email not confirmed')) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred'
+      if (errorMessage.includes('Email not confirmed')) {
         setError('Please verify your email before logging in.')
-      } else if (err.message.includes('Invalid login credentials')) {
+      } else if (errorMessage.includes('Invalid login credentials')) {
         setError('Incorrect email or password.')
       } else {
-        setError(err.message)
+        setError(errorMessage)
       }
     } finally {
       setLoading(false)

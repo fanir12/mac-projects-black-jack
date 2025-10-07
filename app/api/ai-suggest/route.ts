@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       'AI could not provide a suggestion.'
 
     return NextResponse.json({ suggestion: text })
-  } catch (err: any) {
+  } catch (err) {
     console.error('Gemini error:', err)
     return NextResponse.json(
       { suggestion: 'AI suggestion failed.' },

@@ -37,8 +37,8 @@ export default function BuyChips({
 
       onBuy(amount)
       onClose()
-    } catch (err: any) {
-      console.error('Buy chips failed:', err.message)
+    } catch (err) {
+      console.error('Buy chips failed:', err instanceof Error ? err.message : 'Unknown error')
     }
   }
 

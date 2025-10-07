@@ -19,7 +19,6 @@ const ITEMS_PER_PAGE = 10
 
 export default function HistoryPage() {
   const [games, setGames] = useState<Game[]>([])
-  const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -27,7 +26,6 @@ export default function HistoryPage() {
   useEffect(() => {
     async function initHistory() {
       const currentUser = await getCurrentUser()
-      setUser(currentUser)
       if (!currentUser) {
         setError('Please log in to view your history.')
         setLoading(false)

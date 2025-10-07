@@ -1,12 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { type User } from '@supabase/supabase-js'
 import GameTable from '@/components/GameTable'
 import AuthForm from '@/components/AuthForm'
 import { getCurrentUser } from '@/core/auth'
 import Navbar from '@/components/NavBar'
 
 export default function Home() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

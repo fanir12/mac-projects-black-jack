@@ -1,10 +1,12 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { getCurrentUser, signOut } from '@/core/auth'
+import { type User } from '@supabase/supabase-js'
 import AuthForm from '@/components/AuthForm'
+import Link from 'next/link'
 
 export default function LoginPage() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
     getCurrentUser().then(setUser)
@@ -29,12 +31,12 @@ export default function LoginPage() {
             Sign Out
           </button>
 
-          <a
+          <Link
             href="/"
             className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500"
           >
             Go to Game
-          </a>
+          </Link>
         </>
       )}
     </main>

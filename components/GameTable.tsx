@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { type User } from '@supabase/supabase-js'
 import {
   Card as TCard,
   drawCard,
@@ -9,13 +10,12 @@ import {
   type Outcome,
 } from '@/core/game'
 import Card from './Card'
-import BuyChips from './BuyChips'
 import BetControls from './BetControls'
 import { supabase } from '@/core/supabase'
 import { getCurrentUser } from '@/core/auth'
 
 export default function GameTable() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [chips, setChips] = useState(1000)
   const [player, setPlayer] = useState<TCard[]>([])
   const [dealer, setDealer] = useState<TCard[]>([])
