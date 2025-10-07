@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Blackjack Game
 
-## Getting Started
+A modern, full-stack blackjack game built with Next.js, Supabase, and AI-powered suggestions.
 
-First, run the development server:
+## 🎮 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Classic Blackjack Gameplay**: Play blackjack with realistic rules and 3:2 blackjack payouts
+- **AI Suggestions**: Get strategic advice powered by Gemini AI
+- **User Authentication**: Secure sign-up and login with Supabase Auth
+- **Chip Management**: Buy chips and track your balance
+- **Game History**: View your complete game history with pagination
+- **Responsive Design**: Beautiful UI that works on all devices
+- **Real-time Updates**: Instant chip balance updates across the app
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Link to Deployed Project
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+[Play Now](mac-projects-black-jack.vercel.app)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 👤 Name & Email
 
-## Learn More
+**Stefani Rijab**
+- Email: srij0001@student.monash.edu
+- GitHub: [@fanir12](https://github.com/fanir12)
 
-To learn more about Next.js, take a look at the following resources:
+## 🛠️ Tech Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Framework**: Next.js 14 (App Router)
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Styling**: Tailwind CSS
+- **Animations**: Framer Motion
+- **AI**: Google Gemini API
+- **Deployment**: Vercel
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🎯 How to Play
 
-## Deploy on Vercel
+1. **Sign Up/Login**: Create an account or log in
+2. **Place Your Bet**: Choose your bet amount using the chip controls
+3. **Play**: Hit or Stand to try to beat the dealer
+4. **Get AI Help**: Click the "?" button for strategic AI suggestions
+5. **Track Progress**: View your game history and chip balance
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🎲 Game Rules
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Dealer must hit on 16 and below, stand on 17 and above
+- Blackjack (natural 21 with 2 cards) pays 3:2
+- Regular wins pay 1:1
+- Push (tie) returns your bet
+- Aces count as 1 or 11
+
+## ➕ Clarifications
+
+- The project brief doesn't mention a 'blackjack win' (i.e., getting 21 with your first two cards), but it's a normal game rule, so I included it in the project. If both player and dealer gets a 'blackjack', then the game is considered a 'push', rather than a 'win' for the player
+- I used email verification link as the authentication system
