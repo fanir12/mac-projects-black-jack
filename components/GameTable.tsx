@@ -99,6 +99,17 @@ export default function GameTable() {
     }
 
     loadProfile()
+
+    // Listen for chip updates (e.g., from buying chips)
+    const handleChipsUpdate = () => {
+      console.log('GameTable: chips-updated event received')
+      loadProfile()
+    }
+    window.addEventListener('chips-updated', handleChipsUpdate)
+
+    return () => {
+      window.removeEventListener('chips-updated', handleChipsUpdate)
+    }
   }, [])
 
   // --- Game logic ---
@@ -265,7 +276,7 @@ export default function GameTable() {
           {phase === 'result' && (
             <div className="space-y-4 text-center">
               <p className="text-xl sm:text-2xl text-white">
-                {outcome === 'blackjack' && 'Blackjack! You get 1.5X your original bet!✧ദ്ദി✧'}
+                {outcome === 'blackjack' && 'Blackjack! You get 1.5X your original bet ദ്ദി✧'}
                 {outcome === 'win' && 'You Win!☺'}
                 {outcome === 'loss' && 'You Lose˙◠˙'}
                 {outcome === 'push' && 'Pushᯓ★'}

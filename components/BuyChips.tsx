@@ -32,6 +32,9 @@ export default function BuyChips({
 
       if (updateError) throw updateError
 
+      // Notify other components that chips were updated
+      window.dispatchEvent(new CustomEvent('chips-updated'))
+
       onBuy(amount)
       onClose()
     } catch (err: any) {
