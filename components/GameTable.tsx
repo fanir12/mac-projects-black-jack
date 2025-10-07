@@ -27,6 +27,14 @@ export default function GameTable() {
   const pTotal = useMemo(() => handTotal(player), [player])
   const dTotal = useMemo(() => handTotal(dealer), [dealer])
 
+  // Auto-bust: if player goes over 21, immediately end game
+  useEffect(() => {
+    if (phase === 'player' && pTotal > 21) {
+      setPhase('dealer')
+      finish([...player], [...dealer])
+    }
+  }, [pTotal, phase])
+
   // Load user chips
   useEffect(() => {
     async function loadProfile() {
@@ -71,7 +79,7 @@ export default function GameTable() {
     if (amt < 1 || amt > chips) return
     setBet(amt)
     setPlayer([drawCard(), drawCard()])
-    setDealer([drawCard()])
+    setDealer([drawCard(), drawCard()])
     setPhase('player')
   }
 
@@ -115,7 +123,14 @@ export default function GameTable() {
     const result = settle(p, d)
     setOutcome(result)
     setPhase('result')
-    const delta = result === 'win' ? bet! : result === 'loss' ? -bet! : 0
+
+    // Calculate chip delta (blackjack pays 3:2 = 1.5x bet)
+    let delta = 0
+    if (result === 'blackjack') delta = Math.floor(bet! * 1.5)
+    else if (result === 'win') delta = bet!
+    else if (result === 'loss') delta = -bet!
+    // push = 0
+
     const newChips = Math.max(0, chips + delta)
     setChips(newChips)
 
@@ -248,6 +263,7 @@ export default function GameTable() {
           {phase === 'result' && (
             <div className="space-y-4 text-center">
               <p className="text-2xl text-white">
+                {outcome === 'blackjack' && 'Blackjack! You get 1.5X your original bet!✧ദ്ദി✧'}
                 {outcome === 'win' && 'You Win!☺'}
                 {outcome === 'loss' && 'You Lose˙◠˙'}
                 {outcome === 'push' && 'Pushᯓ★'}

@@ -36,16 +36,34 @@ export function handTotal(cards: Card[]): number {
   return total
 }
 
+// check if hand is a natural blackjack (21 with exactly 2 cards)
+export function isBlackjack(cards: Card[]): boolean {
+  return cards.length === 2 && handTotal(cards) === 21
+}
+
 // possible outcomes
-export type Outcome = 'win' | 'loss' | 'push'
+export type Outcome = 'win' | 'loss' | 'push' | 'blackjack'
 
 // decide winner
 export function settle(player: Card[], dealer: Card[]): Outcome {
   const pt = handTotal(player)
   const dt = handTotal(dealer)
+  const playerBJ = isBlackjack(player)
+  const dealerBJ = isBlackjack(dealer)
 
+  // Player busts
   if (pt > 21) return 'loss'
+
+  // Both have blackjack = push
+  if (playerBJ && dealerBJ) return 'push'
+
+  // Player has blackjack (pays 3:2)
+  if (playerBJ) return 'blackjack'
+
+  // Dealer busts
   if (dt > 21) return 'win'
+
+  // Compare totals
   if (pt > dt) return 'win'
   if (pt < dt) return 'loss'
   return 'push'
