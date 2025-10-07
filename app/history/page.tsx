@@ -89,7 +89,22 @@ export default function HistoryPage() {
       <main className="min-h-screen bg-neutral-950 text-neutral-100 p-6 pt-24">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-semibold">Your Game History</h1>
-      </div>
+          <button
+            onClick={async () => {
+              if (!user) return
+              const { error } = await supabase
+                .from('games')
+                .delete()
+                .eq('user_id', user.id)
+              if (!error) {
+                setGames([])
+              }
+            }}
+            className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+          >
+            Clear History
+          </button>
+        </div>
 
       {games.length === 0 ? (
         <p className="opacity-70">No games found for this account.</p>
