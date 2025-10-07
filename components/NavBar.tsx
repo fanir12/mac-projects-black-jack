@@ -10,16 +10,16 @@ export default function Navbar() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-neutral-950/80 backdrop-blur-sm border-b border-neutral-800">
-      <div className="max-w-5xl mx-auto flex justify-between items-center px-6 py-3">
+    <header className="w-full flex justify-between items-center px-8 py-4">
+      <div className="w-full flex justify-between items-center px-8 py-4">
         {/* Left: Title + Chips */}
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-bold tracking-tight">Blackjack</h1>
+          <p className="text-xl font-semibold">Blackjack</p>
           <ChipsDisplay />
         </div>
 
         {/* Right: Navigation */}
-        <nav className="flex items-center gap-6 text-sm font-medium">
+        <nav className="flex items-center gap-8 text-sm font-medium">
           <a href="/" className="hover:text-blue-400 transition-colors">
             Home
           </a>
@@ -35,7 +35,6 @@ export default function Navbar() {
             Logout
           </a>
         </nav>
-
       </div>
     </header>
   )
