@@ -29,47 +29,35 @@ export default function GameTable() {
   const dTotal = useMemo(() => handTotal(dealer), [dealer])
 
   useEffect(() => {
-    let mounted = true
-
     async function loadProfile() {
       const currentUser = await getCurrentUser()
-      if (!mounted) return
       if (!currentUser) return
-
       setUser(currentUser)
 
-      // Try to get existing profile
       const { data, error } = await supabase
         .from('profiles')
         .select('chips')
         .eq('user_id', currentUser.id)
         .maybeSingle()
 
-      if (!mounted) return
       if (error) {
         console.error('Error loading profile:', error.message)
         return
       }
 
-      if (data) {
-        setChips(data.chips)
-      } else {
-        // Create profile with 500 starting chips
+      if (data) setChips(data.chips)
+      else {
         const { error: upsertError } = await supabase
           .from('profiles')
           .upsert({ user_id: currentUser.id, chips: 500 })
-
-        if (upsertError) console.error('Profile upsert failed:', upsertError.message)
-        else setChips(500)
+        if (!upsertError) setChips(500)
       }
     }
 
     loadProfile()
-    return () => {
-      mounted = false
-    }
   }, [])
 
+  // --- Game logic ---
   function reset() {
     setPlayer([])
     setDealer([])
@@ -102,153 +90,135 @@ export default function GameTable() {
 
   async function askAi() {
     if (player.length === 0 || dealer.length === 0) return
-    const dealerUpcard = dealer[0]?.rank ?? 0
     setSuggestion('Thinking...')
-
     try {
       const res = await fetch('/api/ai-suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playerTotal: pTotal, dealerCard: dealerUpcard }),
+        body: JSON.stringify({
+          playerTotal: pTotal,
+          dealerCard: dealer[0]?.rank ?? 0,
+        }),
       })
-
       const data = await res.json()
-      if (data.suggestion) setSuggestion(`AI suggests: ${data.suggestion}`)
-      else setSuggestion('AI could not provide a suggestion.')
-    } catch (err) {
-      console.error(err)
+      setSuggestion(
+        data.suggestion
+          ? `AI suggests: ${data.suggestion}`
+          : 'AI could not provide a suggestion.'
+      )
+    } catch {
       setSuggestion('Error getting AI suggestion.')
     }
   }
 
   async function finish(p: TCard[], d: TCard[]) {
-    if (phase === 'result') return // prevent double save
-
     const result = settle(p, d)
     setOutcome(result)
     setPhase('result')
-
     const delta = result === 'win' ? bet! : result === 'loss' ? -bet! : 0
     const newChips = Math.max(0, chips + delta)
     setChips(newChips)
 
-    if (!user) {
-      console.warn('No user signed in — skipping save.')
-      return
-    }
-
-    try {
-      // Insert game record
-      const { error: gameError } = await supabase.from('games').insert({
-        user_id: user.id,
-        bet: bet!,
-        outcome: result,
-        player_total: handTotal(p),
-        dealer_total: handTotal(d),
-        player_cards: JSON.stringify(p),
-        dealer_cards: JSON.stringify(d),
-      })
-
-      if (gameError) {
-        console.error('Insert failed:', gameError.message)
-      } else if (process.env.NODE_ENV === 'development') {
-        console.log('Game saved to Supabase')
-      }
-
-      // Update chip balance
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ chips: newChips })
-        .eq('user_id', user.id)
-
-      if (updateError) console.error('Chip update failed:', updateError.message)
-    } catch (err) {
-      console.error('Unexpected error saving game:', err)
-    }
+    if (!user) return
+    await supabase.from('games').insert({
+      user_id: user.id,
+      bet: bet!,
+      outcome: result,
+      player_total: handTotal(p),
+      dealer_total: handTotal(d),
+      player_cards: JSON.stringify(p),
+      dealer_cards: JSON.stringify(d),
+    })
+    await supabase
+      .from('profiles')
+      .update({ chips: newChips })
+      .eq('user_id', user.id)
   }
 
+  // --- UI ---
   return (
-    <div className="p-4 rounded-2xl bg-neutral-900 border border-neutral-800 space-y-4">
-      <h2 className="text-lg font-semibold">Blackjack Table</h2>
+    <div className="flex flex-col items-center justify-center text-center min-h-[80vh] space-y-8">
+      <h2 className="text-2xl font-semibold tracking-wide mb-2">
+        Blackjack Table
+      </h2>
 
       {/* Dealer section */}
-      <section>
-        <div className="mb-2 text-sm opacity-70">Dealer</div>
-        <div className="flex gap-2">
+      <section className="space-y-2">
+        <div className="flex justify-center gap-4">
           {dealer.map((c, i) => (
             <Card key={i} c={c} i={i} />
           ))}
         </div>
-        {phase !== 'bet' && <div className="mt-1 text-xs">Total: {dTotal}</div>}
+        <div className="text-sm text-neutral-300">Dealer</div>
+        {phase !== 'bet' && <p className="text-xs opacity-70">Total: {dTotal}</p>}
       </section>
 
       {/* Player section */}
-      <section>
-        <div className="mb-2 text-sm opacity-70">You</div>
-        <div className="flex gap-2">
+      <section className="space-y-2">
+        <div className="flex justify-center gap-4">
           {player.map((c, i) => (
             <Card key={i} c={c} i={i} />
           ))}
         </div>
-        {phase !== 'bet' && <div className="mt-1 text-xs">Total: {pTotal}</div>}
+        <div className="text-sm text-neutral-300">You</div>
+        {phase !== 'bet' && <p className="text-xs opacity-70">Total: {pTotal}</p>}
       </section>
 
-      {/* Betting controls */}
-      {phase === 'bet' && <BetControls max={chips} onBet={start} />}
+      {/* Betting or controls */}
+      {phase === 'bet' && (
+        <div className="mt-6 w-full flex justify-center">
+          <div className="w-[240px]">
+            <BetControls max={chips} onBet={start} />
+          </div>
+        </div>
+      )}
 
-      {/* Player actions */}
       {phase === 'player' && (
         <div className="flex flex-col items-center gap-3">
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50"
+              className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold"
               onClick={hit}
-              disabled={phase !== 'player'}
             >
               Hit
             </button>
             <button
-              className="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-400 text-black font-semibold disabled:opacity-50"
+              className="px-5 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-400 text-black font-semibold"
               onClick={stand}
-              disabled={phase !== 'player'}
             >
               Stand
             </button>
             <button
-              className="px-3 py-2 rounded-full bg-neutral-800 hover:bg-neutral-700 text-lg font-semibold"
+              className="px-4 py-2 rounded-full bg-neutral-800 hover:bg-neutral-700 text-lg font-semibold"
               onClick={askAi}
             >
               ?
             </button>
           </div>
-
           {suggestion && (
-            <div className="text-xs text-center opacity-80 max-w-xs leading-snug">
-              {suggestion}
-            </div>
+            <p className="text-xs text-neutral-400 max-w-xs">{suggestion}</p>
           )}
         </div>
       )}
 
-      {/* Results */}
-      {phase === 'result' && outcome && (
-        <div className="space-y-2">
-          <div className="text-lg">
+      {phase === 'result' && (
+        <div className="space-y-3">
+          <p className="text-lg">
             Result:{' '}
             <b
               className={
-                {
-                  win: 'text-green-400',
-                  loss: 'text-red-400',
-                  push: 'text-yellow-300',
-                }[outcome]
+                outcome === 'win'
+                  ? 'text-green-400'
+                  : outcome === 'loss'
+                  ? 'text-red-400'
+                  : 'text-yellow-300'
               }
             >
-              {outcome.toUpperCase()}
+              {outcome?.toUpperCase()}
             </b>
-          </div>
+          </p>
           <button
-            className="px-4 py-2 rounded-lg bg-neutral-700 hover:bg-neutral-600"
+            className="px-5 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg"
             onClick={reset}
           >
             Play Again
@@ -256,9 +226,9 @@ export default function GameTable() {
         </div>
       )}
 
-      {/* Chip display */}
-      <div className="text-sm opacity-80 flex items-center gap-2">
-        Chips: {chips}
+      {/* Chip display
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-neutral-900 px-3 py-1.5 rounded-full border border-neutral-700 shadow-sm">
+        <span className="text-sm font-medium text-neutral-100">💰 {chips}</span>
         <button
           onClick={() => setShowBuyModal(true)}
           className="ml-1 px-2 py-0.5 rounded bg-neutral-800 hover:bg-neutral-700 text-xs"
@@ -267,14 +237,13 @@ export default function GameTable() {
         </button>
       </div>
 
-      {/* Buy Chips Modal */}
       {showBuyModal && user && (
         <BuyChips
           userId={user.id}
           onBuy={(amt) => setChips((prev) => prev + amt)}
           onClose={() => setShowBuyModal(false)}
         />
-      )}
+      )} */}
     </div>
   )
 }
