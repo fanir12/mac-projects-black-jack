@@ -10,16 +10,16 @@ export default function Navbar() {
   }
 
   return (
-    <header className="w-full flex justify-between items-center px-8 py-4">
-      <div className="w-full flex justify-between items-center px-8 py-4">
+    <header className="w-full flex justify-between items-center px-4 sm:px-8 py-4">
+      <div className="w-full flex justify-between items-center gap-4">
         {/* Left: Title + Chips */}
-        <div className="flex items-center gap-4">
-          <p className="text-xl font-semibold">Blackjack</p>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <p className="text-lg sm:text-xl font-semibold">Blackjack</p>
           <ChipsDisplay />
         </div>
 
         {/* Right: Navigation */}
-        <nav className="flex items-center gap-8 text-sm font-medium">
+        <nav className="flex items-center gap-4 sm:gap-8 text-sm font-medium">
           <Link href="/" className="hover:text-blue-400 transition-colors">
             Home
           </Link>

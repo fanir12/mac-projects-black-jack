@@ -159,10 +159,10 @@ export default function GameTable() {
   return (
     <div className="relative w-full min-h-screen flex items-start justify-center bg-black px-4 pt-20">
       {/* Main game table - centered vertically and horizontally */}
-      <div className="w-full max-w-2xl space-y-24">
+      <div className="w-full max-w-2xl space-y-12 sm:space-y-24">
         
         {/* Dealer section */}
-        <div className="flex flex-col items-center space-y-6">
+        <div className="flex flex-col items-center space-y-4 sm:space-y-6">
           {/* Dealer cards */}
           <div className="flex gap-4 justify-center min-h-[140px] items-center">
             {phase === 'bet' ? (
@@ -201,7 +201,7 @@ export default function GameTable() {
         </div>
 
         {/* Player section */}
-        <div className="flex flex-col items-center space-y-6">
+        <div className="flex flex-col items-center space-y-4 sm:space-y-6">
           {/* Player cards */}
           <div className="flex gap-4 justify-center min-h-[140px] items-center">
             {phase === 'bet' ? (
@@ -236,7 +236,7 @@ export default function GameTable() {
             <div className="flex flex-col items-center gap-4">
               <div className="flex justify-center items-center gap-6">
                 <button
-                  className="px-8 py-3 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-white font-semibold transition-colors text-lg"
+                  className="px-6 sm:px-8 py-3 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-white font-semibold transition-colors text-base sm:text-lg"
                   onClick={hit}
                 >
                   Hit
@@ -249,7 +249,7 @@ export default function GameTable() {
                   ?
                 </button>
                 <button
-                  className="px-8 py-3 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-white font-semibold transition-colors text-lg"
+                  className="px-6 sm:px-8 py-3 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-white font-semibold transition-colors text-base sm:text-lg"
                   onClick={stand}
                 >
                   Stand
@@ -264,7 +264,7 @@ export default function GameTable() {
           {/* Result phase */}
           {phase === 'result' && (
             <div className="space-y-4 text-center">
-              <p className="text-2xl text-white">
+              <p className="text-xl sm:text-2xl text-white">
                 {outcome === 'blackjack' && 'Blackjack! You get 1.5X your original bet!✧ദ്ദി✧'}
                 {outcome === 'win' && 'You Win!☺'}
                 {outcome === 'loss' && 'You Lose˙◠˙'}
