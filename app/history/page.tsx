@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/core/supabase'
 import { getCurrentUser } from '@/core/auth'
+import Navbar from '@/components/NavBar'
 
 type Game = {
   id: number
@@ -58,35 +59,36 @@ export default function HistoryPage() {
 
   if (loading)
     return (
-      <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center">
-        Loading...
-      </main>
+      <>
+        <Navbar />
+        <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center">
+          Loading...
+        </main>
+      </>
     )
 
   if (error)
     return (
-      <main className="min-h-screen bg-neutral-950 text-red-400 flex flex-col items-center justify-center gap-3">
-        <p>{error}</p>
-        <a
-          href="/login"
-          className="text-sm text-blue-400 hover:text-blue-300 underline"
-        >
-          Go to Login
-        </a>
-      </main>
+      <>
+        <Navbar />
+        <main className="min-h-screen bg-neutral-950 text-red-400 flex flex-col items-center justify-center gap-3">
+          <p>{error}</p>
+          <a
+            href="/login"
+            className="text-sm text-blue-400 hover:text-blue-300 underline"
+          >
+            Go to Login
+          </a>
+        </main>
+      </>
     )
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold">Your Game History</h1>
-
-        <button
-          onClick={() => user && loadHistory(user.id)}
-          className="px-3 py-1 text-sm bg-neutral-800 hover:bg-neutral-700 rounded"
-        >
-          Refresh
-        </button>
+    <>
+      <Navbar />
+      <main className="min-h-screen bg-neutral-950 text-neutral-100 p-6 pt-24">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-semibold">Your Game History</h1>
       </div>
 
       {games.length === 0 ? (
@@ -129,6 +131,7 @@ export default function HistoryPage() {
           </table>
         </div>
       )}
-    </main>
+      </main>
+    </>
   )
 }
