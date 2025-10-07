@@ -1,12 +1,12 @@
 'use client'
 import ChipsDisplay from './ChipsDisplay'
 import { signOut } from '@/core/auth'
+import Link from 'next/link'
 
 export default function Navbar() {
-  const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault()
+  const handleLogout = async () => {
     await signOut()
-    window.location.reload()
+    window.location.href = '/'
   }
 
   return (
@@ -20,20 +20,18 @@ export default function Navbar() {
 
         {/* Right: Navigation */}
         <nav className="flex items-center gap-8 text-sm font-medium">
-          <a href="/" className="hover:text-blue-400 transition-colors">
+          <Link href="/" className="hover:text-blue-400 transition-colors">
             Home
-          </a>
-          <a href="/history" className="hover:text-blue-400 transition-colors">
+          </Link>
+          <Link href="/history" className="hover:text-blue-400 transition-colors">
             History
-          </a>
-          {/* Logout styled like a normal link */}
-          <a
-            href="#"
+          </Link>
+          <button
             onClick={handleLogout}
-            className="hover:text-blue-400 transition-colors"
+            className="hover:text-blue-400 transition-colors bg-transparent border-none cursor-pointer"
           >
             Logout
-          </a>
+          </button>
         </nav>
       </div>
     </header>
