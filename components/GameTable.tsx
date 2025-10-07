@@ -22,12 +22,12 @@ export default function GameTable() {
   const [bet, setBet] = useState<number | null>(null)
   const [phase, setPhase] = useState<'bet' | 'player' | 'dealer' | 'result'>('bet')
   const [outcome, setOutcome] = useState<Outcome | null>(null)
-  const [showBuyModal, setShowBuyModal] = useState(false)
   const [suggestion, setSuggestion] = useState<string | null>(null)
 
   const pTotal = useMemo(() => handTotal(player), [player])
   const dTotal = useMemo(() => handTotal(dealer), [dealer])
 
+  // Load user chips
   useEffect(() => {
     async function loadProfile() {
       const currentUser = await getCurrentUser()
@@ -133,117 +133,135 @@ export default function GameTable() {
       .from('profiles')
       .update({ chips: newChips })
       .eq('user_id', user.id)
+    // Notify other components that chips were updated
+    window.dispatchEvent(new CustomEvent('chips-updated'))
   }
 
   // --- UI ---
   return (
-    <div className="flex flex-col items-center justify-center text-center min-h-[80vh] space-y-8">
-      <h2 className="text-2xl font-semibold tracking-wide mb-2">
-        Blackjack Table
-      </h2>
+    <div className="relative w-full min-h-screen flex items-start justify-center bg-black px-4 pt-20">
+      {/* Main game table - centered vertically and horizontally */}
+      <div className="w-full max-w-2xl space-y-24">
+        
+        {/* Dealer section */}
+        <div className="flex flex-col items-center space-y-6">
+          {/* Dealer cards */}
+          <div className="flex gap-4 justify-center min-h-[140px] items-center">
+            {phase === 'bet' ? (
+              // Show gray slots during bet phase
+              Array.from({ length: 2 }).map((_, i) => (
+                <Card key={i} i={i} slot />
+              ))
+            ) : (
+              // Show dealer's cards during play
+              <>
+                {dealer[0] && <Card c={dealer[0]} i={0} />}
+                {dealer[1] ? (
+                  phase === 'player' ? (
+                    <Card i={1} back />
+                  ) : (
+                    <Card c={dealer[1]} i={1} />
+                  )
+                ) : (
+                  <Card i={1} slot />
+                )}
+              </>
+            )}
+          </div>
 
-      {/* Dealer section */}
-      <section className="space-y-2">
-        <div className="flex justify-center gap-4">
-          {dealer.map((c, i) => (
-            <Card key={i} c={c} i={i} />
-          ))}
-        </div>
-        <div className="text-sm text-neutral-300">Dealer</div>
-        {phase !== 'bet' && <p className="text-xs opacity-70">Total: {dTotal}</p>}
-      </section>
-
-      {/* Player section */}
-      <section className="space-y-2">
-        <div className="flex justify-center gap-4">
-          {player.map((c, i) => (
-            <Card key={i} c={c} i={i} />
-          ))}
-        </div>
-        <div className="text-sm text-neutral-300">You</div>
-        {phase !== 'bet' && <p className="text-xs opacity-70">Total: {pTotal}</p>}
-      </section>
-
-      {/* Betting or controls */}
-      {phase === 'bet' && (
-        <div className="mt-6 w-full flex justify-center">
-          <div className="w-[240px]">
-            <BetControls max={chips} onBet={start} />
+          {/* Dealer label - always visible */}
+          <div className="bg-white text-black px-6 py-2 rounded-full text-sm font-medium flex items-center gap-2">
+            {phase !== 'bet' && (
+              <span className="font-bold">
+                {phase === 'player'
+                  ? handTotal([dealer[0]]) // show only visible card total
+                  : dTotal // reveal full total after dealer turn
+                }
+              </span>
+            )}
+            <span className="text-neutral-600">Dealer</span>
           </div>
         </div>
-      )}
 
-      {phase === 'player' && (
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex gap-3">
-            <button
-              className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold"
-              onClick={hit}
-            >
-              Hit
-            </button>
-            <button
-              className="px-5 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-400 text-black font-semibold"
-              onClick={stand}
-            >
-              Stand
-            </button>
-            <button
-              className="px-4 py-2 rounded-full bg-neutral-800 hover:bg-neutral-700 text-lg font-semibold"
-              onClick={askAi}
-            >
-              ?
-            </button>
+        {/* Player section */}
+        <div className="flex flex-col items-center space-y-6">
+          {/* Player cards */}
+          <div className="flex gap-4 justify-center min-h-[140px] items-center">
+            {phase === 'bet' ? (
+              // Show gray slots during bet phase
+              Array.from({ length: 2 }).map((_, i) => (
+                <Card key={i} i={i} slot />
+              ))
+            ) : (
+              // Show player's cards during play
+              player.map((card, i) => <Card key={i} c={card} i={i} />)
+            )}
           </div>
-          {suggestion && (
-            <p className="text-xs text-neutral-400 max-w-xs">{suggestion}</p>
+
+          {/* Player label - always visible */}
+          <div className="bg-white text-black px-6 py-2 rounded-full text-sm font-medium flex items-center gap-2">
+            {phase !== 'bet' && <span className="font-bold">{pTotal}</span>}
+            <span className="text-neutral-600">You</span>
+          </div>
+        </div>
+
+        {/* Controls section */}
+        <div className="flex flex-col items-center space-y-8">
+          {/* Bet phase */}
+          {phase === 'bet' && (
+            <div className="w-full max-w-sm">
+              <BetControls max={chips} onBet={start} />
+            </div>
+          )}
+
+          {/* Player action phase */}
+          {phase === 'player' && (
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex justify-center items-center gap-6">
+                <button
+                  className="px-8 py-3 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-white font-semibold transition-colors text-lg"
+                  onClick={hit}
+                >
+                  Hit
+                </button>
+                <button
+                  className="w-12 h-12 rounded-full bg-neutral-800 hover:bg-neutral-700 text-white text-xl font-bold transition-colors"
+                  onClick={askAi}
+                  title="Ask AI for suggestion"
+                >
+                  ?
+                </button>
+                <button
+                  className="px-8 py-3 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-white font-semibold transition-colors text-lg"
+                  onClick={stand}
+                >
+                  Stand
+                </button>
+              </div>
+              {suggestion && (
+                <p className="text-sm text-neutral-400 max-w-md text-center">{suggestion}</p>
+              )}
+            </div>
+          )}
+
+          {/* Result phase */}
+          {phase === 'result' && (
+            <div className="space-y-4 text-center">
+              <p className="text-2xl text-white">
+                {outcome === 'win' && 'You Win!☺'}
+                {outcome === 'loss' && 'You Lose˙◠˙'}
+                {outcome === 'push' && 'Pushᯓ★'}
+              </p>
+              <button
+                className="px-8 py-3 bg-neutral-700 hover:bg-neutral-600 rounded-lg font-semibold transition-colors text-white text-lg"
+                onClick={reset}
+              >
+                Play Again
+              </button>
+            </div>
           )}
         </div>
-      )}
-
-      {phase === 'result' && (
-        <div className="space-y-3">
-          <p className="text-lg">
-            Result:{' '}
-            <b
-              className={
-                outcome === 'win'
-                  ? 'text-green-400'
-                  : outcome === 'loss'
-                  ? 'text-red-400'
-                  : 'text-yellow-300'
-              }
-            >
-              {outcome?.toUpperCase()}
-            </b>
-          </p>
-          <button
-            className="px-5 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg"
-            onClick={reset}
-          >
-            Play Again
-          </button>
-        </div>
-      )}
-
-      {/* Chip display
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-neutral-900 px-3 py-1.5 rounded-full border border-neutral-700 shadow-sm">
-        <span className="text-sm font-medium text-neutral-100">💰 {chips}</span>
-        <button
-          onClick={() => setShowBuyModal(true)}
-          className="ml-1 px-2 py-0.5 rounded bg-neutral-800 hover:bg-neutral-700 text-xs"
-        >
-          +
-        </button>
       </div>
-
-      {showBuyModal && user && (
-        <BuyChips
-          userId={user.id}
-          onBuy={(amt) => setChips((prev) => prev + amt)}
-          onClose={() => setShowBuyModal(false)}
-        />
-      )} */}
     </div>
   )
 }

@@ -28,7 +28,19 @@ export default function ChipsDisplay() {
 
       if (data) setChips(data.chips)
     }
+
     loadChips()
+
+    // Listen for chip updates from other components
+    const handleChipsUpdate = () => {
+      console.log('Chips update event received')
+      loadChips()
+    }
+    window.addEventListener('chips-updated', handleChipsUpdate)
+
+    return () => {
+      window.removeEventListener('chips-updated', handleChipsUpdate)
+    }
   }, [])
 
   return (
