@@ -14,7 +14,7 @@ A modern, full-stack blackjack game built with Next.js, Supabase, and AI-powered
 
 ## 🚀 Link to Deployed Project
 
-[Play Now](mac-projects-black-jack.vercel.app)
+[Play Now](https://mac-projects-black-jack.vercel.app)
 
 ## 👤 Name & Email
 
