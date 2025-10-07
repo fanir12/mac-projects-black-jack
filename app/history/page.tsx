@@ -14,27 +14,27 @@ type Game = {
   created_at: string
 }
 
+const ITEMS_PER_PAGE = 10
+
 export default function HistoryPage() {
   const [games, setGames] = useState<Game[]>([])
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     async function initHistory() {
       const currentUser = await getCurrentUser()
       setUser(currentUser)
-
       if (!currentUser) {
         setError('Please log in to view your history.')
         setLoading(false)
         return
       }
-
       await loadHistory(currentUser.id)
       setLoading(false)
     }
-
     initHistory()
   }, [])
 
@@ -57,11 +57,22 @@ export default function HistoryPage() {
     setGames(withDelta)
   }
 
+  const totalPages = Math.ceil(games.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const currentGames = games.slice(startIndex, endIndex)
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+    }
+  }
+
   if (loading)
     return (
       <>
         <Navbar />
-        <main className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center">
+        <main className="min-h-screen bg-black text-white flex items-center justify-center">
           Loading...
         </main>
       </>
@@ -71,7 +82,7 @@ export default function HistoryPage() {
     return (
       <>
         <Navbar />
-        <main className="min-h-screen bg-neutral-950 text-red-400 flex flex-col items-center justify-center gap-3">
+        <main className="min-h-screen bg-black text-red-400 flex flex-col items-center justify-center gap-3">
           <p>{error}</p>
           <a
             href="/login"
@@ -86,66 +97,154 @@ export default function HistoryPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-neutral-950 text-neutral-100 p-6 pt-24">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-semibold">Your Game History</h1>
-          <button
-            onClick={async () => {
-              if (!user) return
-              const { error } = await supabase
-                .from('games')
-                .delete()
-                .eq('user_id', user.id)
-              if (!error) {
-                setGames([])
-              }
-            }}
-            className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-          >
-            Clear History
-          </button>
-        </div>
+      <main className="min-h-screen bg-black text-white px-6 py-8">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-4xl font-bold mb-8">Game History</h1>
 
-      {games.length === 0 ? (
-        <p className="opacity-70">No games found for this account.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left border-separate border-spacing-y-2">
-            <thead className="opacity-70 text-sm">
-              <tr>
-                <th>Date</th>
-                <th>Bet</th>
-                <th>Result</th>
-                <th>Δ Chips</th>
-                <th>Player</th>
-                <th>Dealer</th>
-              </tr>
-            </thead>
-            <tbody>
-              {games.map((g) => (
-                <tr key={g.id} className="text-sm">
-                  <td>{new Date(g.created_at).toLocaleString()}</td>
-                  <td>{g.bet}</td>
-                  <td
-                    className={
-                      g.outcome === 'win'
-                        ? 'text-green-400'
-                        : g.outcome === 'loss'
-                        ? 'text-red-400'
-                        : 'text-yellow-300'
-                    }
+          {games.length === 0 ? (
+            <p className="text-neutral-400">No games found for this account.</p>
+          ) : (
+            <>
+              {/* Game cards */}
+              <div className="space-y-3 mb-8">
+                {currentGames.map((g) => (
+                  <div
+                    key={g.id}
+                    className="bg-neutral-900 rounded-xl p-6 border border-neutral-800"
                   >
-                    {g.outcome}
-                  </td>
-                  <td>{g.delta! > 0 ? `+${g.delta}` : g.delta}</td>
-                  <td>{g.player_total}</td>
-                  <td>{g.dealer_total}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <div className="grid grid-cols-4 gap-6">
+                      {/* Date */}
+                      <div>
+                        <div className="text-neutral-500 text-sm mb-1">Date</div>
+                        <div className="text-white font-medium">
+                          {new Date(g.created_at).toLocaleDateString('en-US', {
+                            month: 'numeric',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                          ,{' '}
+                          {new Date(g.created_at).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: true,
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Bet */}
+                      <div>
+                        <div className="text-neutral-500 text-sm mb-1">Bet</div>
+                        <div className="text-white font-medium">{g.bet} chips</div>
+                      </div>
+
+                      {/* Score */}
+                      <div>
+                        <div className="text-neutral-500 text-sm mb-1">Score</div>
+                        <div className="text-white font-medium">
+                          You: {g.player_total} | Dealer: {g.dealer_total}
+                        </div>
+                      </div>
+
+                      {/* Result */}
+                      <div>
+                        <div className="text-neutral-500 text-sm mb-1">Result</div>
+                        <div
+                          className={`font-semibold ${
+                            g.outcome === 'win'
+                              ? 'text-green-400'
+                              : g.outcome === 'loss'
+                              ? 'text-red-400'
+                              : 'text-yellow-400'
+                          }`}
+                        >
+                          {g.outcome === 'win' && 'Win'}
+                          {g.outcome === 'loss' && 'Lose'}
+                          {g.outcome === 'push' && 'Push'}
+                          {g.outcome === 'win' && g.player_total === 21 && g.delta === g.bet * 1.5
+                            ? ` (+${Math.round(g.bet * 1.5)})`
+                            : g.outcome === 'win'
+                            ? ` (+${g.delta})`
+                            : g.outcome === 'loss'
+                            ? ` (${g.delta})`
+                            : ''}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2">
+                  <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ←
+                  </button>
+
+                  {/* Page numbers */}
+                  {currentPage > 2 && (
+                    <>
+                      <button
+                        onClick={() => goToPage(1)}
+                        className="px-3 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition-colors"
+                      >
+                        1
+                      </button>
+                      {currentPage > 3 && (
+                        <span className="px-2 text-neutral-500">...</span>
+                      )}
+                    </>
+                  )}
+
+                  {[currentPage - 1, currentPage, currentPage + 1].map(
+                    (page) =>
+                      page > 0 &&
+                      page <= totalPages && (
+                        <button
+                          key={page}
+                          onClick={() => goToPage(page)}
+                          className={`px-3 py-2 rounded-lg transition-colors ${
+                            page === currentPage
+                              ? 'bg-white text-black font-semibold'
+                              : 'bg-neutral-800 hover:bg-neutral-700'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )
+                  )}
+
+                  {currentPage < totalPages - 1 && (
+                    <>
+                      {currentPage < totalPages - 2 && (
+                        <span className="px-2 text-neutral-500">...</span>
+                      )}
+                      <button
+                        onClick={() => goToPage(totalPages)}
+                        className="px-3 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition-colors"
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    →
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
-      )}
       </main>
     </>
   )
