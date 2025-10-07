@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import {
   Card as TCard,
   drawCard,
@@ -27,13 +27,49 @@ export default function GameTable() {
   const pTotal = useMemo(() => handTotal(player), [player])
   const dTotal = useMemo(() => handTotal(dealer), [dealer])
 
+  // Finish function 
+  const finish = useCallback(async (p: TCard[], d: TCard[]) => {
+    const result = settle(p, d)
+    setOutcome(result)
+    setPhase('result')
+
+    // Calculate chip delta (blackjack pays 3:2 = 1.5x bet)
+    let delta = 0
+    if (result === 'blackjack') delta = Math.floor(bet! * 1.5)
+    else if (result === 'win') delta = bet!
+    else if (result === 'loss') delta = -bet!
+    // push = 0
+
+    const newChips = Math.max(0, chips + delta)
+    setChips(newChips)
+
+    if (!user) return
+    await supabase.from('games').insert({
+      user_id: user.id,
+      bet: bet!,
+      outcome: result,
+      player_total: handTotal(p),
+      dealer_total: handTotal(d),
+      player_cards: JSON.stringify(p),
+      dealer_cards: JSON.stringify(d),
+    })
+    await supabase
+      .from('profiles')
+      .update({ chips: newChips })
+      .eq('user_id', user.id)
+    // Notify other components that chips were updated
+    window.dispatchEvent(new CustomEvent('chips-updated'))
+  }, [bet, chips, user])
+
   // Auto-bust: if player goes over 21, immediately end game
   useEffect(() => {
     if (phase === 'player' && pTotal > 21) {
+      console.log('Player busted with total:', pTotal)
+      console.log('Dealer cards:', dealer.length, 'Total:', handTotal(dealer))
       setPhase('dealer')
       finish([...player], [...dealer])
     }
-  }, [pTotal, phase])
+  }, [pTotal, phase, player, dealer, finish])
 
   // Load user chips
   useEffect(() => {
@@ -117,39 +153,6 @@ export default function GameTable() {
     } catch {
       setSuggestion('Error getting AI suggestion.')
     }
-  }
-
-  async function finish(p: TCard[], d: TCard[]) {
-    const result = settle(p, d)
-    setOutcome(result)
-    setPhase('result')
-
-    // Calculate chip delta (blackjack pays 3:2 = 1.5x bet)
-    let delta = 0
-    if (result === 'blackjack') delta = Math.floor(bet! * 1.5)
-    else if (result === 'win') delta = bet!
-    else if (result === 'loss') delta = -bet!
-    // push = 0
-
-    const newChips = Math.max(0, chips + delta)
-    setChips(newChips)
-
-    if (!user) return
-    await supabase.from('games').insert({
-      user_id: user.id,
-      bet: bet!,
-      outcome: result,
-      player_total: handTotal(p),
-      dealer_total: handTotal(d),
-      player_cards: JSON.stringify(p),
-      dealer_cards: JSON.stringify(d),
-    })
-    await supabase
-      .from('profiles')
-      .update({ chips: newChips })
-      .eq('user_id', user.id)
-    // Notify other components that chips were updated
-    window.dispatchEvent(new CustomEvent('chips-updated'))
   }
 
   // --- UI ---

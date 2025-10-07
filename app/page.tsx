@@ -10,10 +10,15 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getCurrentUser().then((u) => {
-      setUser(u)
-      setLoading(false)
-    })
+    getCurrentUser()
+      .then((u) => {
+        setUser(u)
+        setLoading(false)
+      })
+      .catch((err) => {
+        console.error('Error loading user:', err)
+        setLoading(false)
+      })
   }, [])
 
   if (loading)
